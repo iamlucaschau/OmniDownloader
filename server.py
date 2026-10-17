@@ -1,3 +1,5 @@
+import io
+import json
 import os
 import re
 import time
@@ -113,6 +115,28 @@ def sanitize_filename(name: str) -> str:
     return cleaned[:80].strip()
 
 
+def load_cookie_file():
+    """yt-dlp chỉ đọc định dạng Netscape. Extension như Cookie-Editor/EditThisCookie hay xuất JSON,
+    nên tự chuyển JSON sang Netscape trong bộ nhớ (không ghi thêm file cookie nào ra ổ đĩa)."""
+    raw = COOKIE_TXT_PATH.read_text(encoding="utf-8-sig").strip()
+    if not raw.startswith("["):
+        return str(COOKIE_TXT_PATH)
+
+    lines = ["# Netscape HTTP Cookie File"]
+    for c in json.loads(raw):
+        domain = c["domain"]
+        lines.append("\t".join([
+            domain,
+            "TRUE" if domain.startswith(".") else "FALSE",  # Netscape bắt buộc khớp với dấu "." đầu domain
+            c.get("path", "/"),
+            "TRUE" if c.get("secure") else "FALSE",
+            str(int(c.get("expirationDate") or 0)),  # 0 = cookie phiên
+            c["name"],
+            c["value"],
+        ]))
+    return io.StringIO("\n".join(lines) + "\n")
+
+
 def apply_cookie_options(ydl_opts: dict, use_cookies: bool, cookie_source: str) -> dict:
     """Gắn cấu hình Cookie vào yt-dlp từ file cookies.txt hoặc trình duyệt"""
     if not use_cookies:
@@ -120,7 +144,7 @@ def apply_cookie_options(ydl_opts: dict, use_cookies: bool, cookie_source: str) 
 
     if cookie_source == "cookies_txt":
         if COOKIE_TXT_PATH.exists():
-            ydl_opts["cookiefile"] = str(COOKIE_TXT_PATH)
+            ydl_opts["cookiefile"] = load_cookie_file()
         else:
             raise ValueError(
                 "Chưa tìm thấy file 'cookies.txt' trong thư mục OmniDownloader! "
@@ -172,6 +196,7 @@ async def analyze_links(req: AnalyzeRequest):
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
+        "no_color": True,  # bỏ mã màu ANSI khỏi thông báo lỗi hiển thị trên giao diện
         "extract_flat": False,
         "skip_download": True,
     }
@@ -194,7 +219,12 @@ async def analyze_links(req: AnalyzeRequest):
             })
         return {"items": results}
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    try:
+        ydl = yt_dlp.YoutubeDL(ydl_opts)  # nạp cookie ngay tại đây → lỗi cookie phải bắt ở đây, không để thành lỗi 500
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Lỗi đọc Cookie: {str(e)[:200]}")
+
+    with ydl:
         for idx, url in enumerate(req.urls):
             try:
                 info = ydl.extract_info(url, download=False)
@@ -274,6 +304,7 @@ async def download_video(req: DownloadRequest):
         "postprocessors": postprocessors,
         "quiet": False,
         "no_warnings": True,
+        "no_color": True,  # bỏ mã màu ANSI khỏi thông báo lỗi hiển thị trên giao diện
     }
 
     try:

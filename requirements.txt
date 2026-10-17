@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+# curl-cffi: bắt buộc để TikTok không chặn (yt-dlp giả dạng trình duyệt thật)
+yt-dlp[default,curl-cffi]

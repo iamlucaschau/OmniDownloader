@@ -574,7 +574,8 @@
                             cookie_source: cookieSource
                         })
                     });
-                    const data = await res.json();
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.detail || `Server báo lỗi ${res.status}`);
                     data.items.forEach(item => {
                         const p = detectPlatform(item.url);
                         videoQueue.unshift({
@@ -589,7 +590,7 @@
                         });
                     });
                 } catch (err) {
-                    showToast('Lỗi khi gọi Server, chuyển sang dữ liệu mô phỏng.', 'warning');
+                    showToast(`Lỗi từ Server: ${err.message}`, 'warning');
                 }
             } else {
                 await new Promise(r => setTimeout(r, 450));
