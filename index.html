@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMNI MEDIA STUDIO — Trình Tải Video & Quản Lý Tư Liệu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#080d1a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #080d1a;
+            color: #f1f5f9;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-40 glass-card border-b border-slate-800/80">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="layers" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-lg tracking-tight text-white">OMNI STUDIO</h1>
+                        <span id="connectionBadge" class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            Chế độ Mô phỏng (UI)
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Multi-Platform HD Video & Metadata Manager</p>
+                </div>
+            </div>
+
+            <!-- Right Actions & Navigation Tabs -->
+            <div class="flex items-center gap-2.5">
+                <!-- Nút Mở Nhanh Thư Mục Downloads trên Windows -->
+                <button onclick="openDownloadFolder()" id="btnOpenFolder" title="Mở thư mục chứa video đã tải trên máy tính"
+                    class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-medium transition">
+                    <i data-lucide="folder-open" class="w-4 h-4 text-amber-400"></i>
+                    <span>Mở Thư Mục Tải Về</span>
+                </button>
+
+                <div class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                    <button onclick="switchTab('downloader')" id="tab-downloader" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-indigo-600 text-white shadow">
+                        <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                        <span>Trình Tải Video</span>
+                        <span id="queueCountBadge" class="hidden px-1.5 py-0.2 bg-white/20 rounded text-xs">0</span>
+                    </button>
+                    <button onclick="switchTab('history')" id="tab-history" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white">
+                        <i data-lucide="history" class="w-4 h-4"></i>
+                        <span>Lịch Sử Đã Tải</span>
+                        <span id="historyCountBadge" class="px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded text-xs">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+
+        <!-- ==================== TAB 1: TRÌNH TẢI VIDEO ==================== -->
+        <section id="view-downloader" class="space-y-6">
+            
+            <!-- Banner Nền tảng hỗ trợ -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-1">
+                <div>
+                    <h2 class="text-xl font-semibold text-white">Tải Video HD & Trích Xuất Caption/Hashtag</h2>
+                    <p class="text-sm text-slate-400 mt-0.5">Dán 1 hoặc nhiều liên kết bất kỳ — Tự động phân loại nền tảng, chọn chất lượng và quản lý Caption.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-medium">
+                    <span class="px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">FB Reels</span>
+                    <span class="px-2.5 py-1 rounded-md bg-pink-500/10 text-pink-400 border border-pink-500/20">Instagram</span>
+                    <span class="px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">TikTok</span>
+                    <span class="px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 border border-red-500/20">YouTube</span>
+                    <span class="px-2.5 py-1 rounded-md bg-slate-500/10 text-slate-300 border border-slate-500/20">X.com</span>
+                </div>
+            </div>
+
+            <!-- Ô NHẬP LINK THÔNG MINH -->
+            <div class="glass-card rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="urlInput" class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="link" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        Danh sách liên kết (Mỗi link 1 dòng)
+                    </label>
+                    <button onclick="loadSampleLinks()" class="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-4 flex items-center gap-1">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        Chèn 4 link mẫu để test nhanh
+                    </button>
+                </div>
+
+                <textarea id="urlInput" rows="4" 
+                    placeholder="https://www.facebook.com/reel/123456789&#10;https://www.instagram.com/reel/AbCdEfGh/&#10;https://www.tiktok.com/@creator/video/987654321&#10;https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                    class="w-full bg-slate-950/90 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl p-3.5 text-sm font-mono text-slate-200 placeholder-slate-600 outline-none transition resize-y"></textarea>
+
+                <!-- THANH CẤU HÌNH COOKIE TRÌNH DUYỆT -->
+                <div class="mt-3 p-3 rounded-xl bg-slate-900/90 border border-slate-800/90 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="useCookiesToggle" onchange="toggleCookieSelector(this.checked)"
+                                class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-indigo-500 focus:ring-indigo-500">
+                            <span class="text-xs font-medium text-slate-200 flex items-center gap-1.5">
+                                <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-400"></i>
+                                Sử dụng Cookie xác thực (Vượt chặn FB/IG riêng tư hoặc bắt đăng nhập)
+                            </span>
+                        </label>
+
+                        <!-- Dropdown chọn nguồn Cookie (Chỉ hiện khi tích chọn) -->
+                        <div id="browserSelectWrapper" class="hidden flex items-center gap-2 pl-3 border-l border-slate-800">
+                            <span class="text-[11px] text-slate-400">Nguồn:</span>
+                            <select id="cookieBrowser" onchange="checkCookieFileStatus()"
+                                class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-medium text-amber-300 outline-none focus:border-amber-500">
+                                <option value="cookies_txt">📄 File cookies.txt (Khuyên dùng trên Windows)</option>
+                                <option value="firefox">🦊 Trình duyệt Firefox</option>
+                                <option value="chrome">🌐 Google Chrome (Đóng Chrome khi tải)</option>
+                                <option value="edge">🧭 Microsoft Edge (Đóng Edge khi tải)</option>
+                                <option value="brave">🦁 Brave Browser (Đóng Brave khi tải)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <span id="cookieHint" class="hidden text-[11px] text-slate-400">
+                        💡 Đặt file <code class="text-amber-300 font-mono">cookies.txt</code> cùng thư mục với <code class="text-indigo-300 font-mono">server.py</code> để tải ổn định nhất.
+                    </span>
+                </div>
+
+                <!-- Các nút thao tác dưới ô nhập -->
+                <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pt-1">
+                    <div class="flex items-center gap-2">
+                        <button onclick="pasteFromClipboard()" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition">
+                            <i data-lucide="clipboard-paste" class="w-4 h-4 text-slate-400"></i>
+                            Dán từ Clipboard
+                        </button>
+                        <button onclick="clearInput()" class="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-rose-950/50 hover:text-rose-300 text-slate-400 border border-slate-800 text-xs font-medium flex items-center gap-1.5 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Xóa trắng
+                        </button>
+                    </div>
+
+                    <button onclick="analyzeLinks()" id="btnAnalyze" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        <span>Phân Tích Liên Kết</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- THANH ĐIỀU KHIỂN HÀNG LOẠT (BATCH CONTROL BAR) -->
+            <div id="batchControlBar" class="hidden glass-card rounded-2xl p-4 border-l-4 border-l-indigo-500">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    
+                    <!-- Cột trái: Tích chọn & Tùy chọn chung -->
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" checked
+                                class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm font-medium text-white">Chọn tất cả (<span id="selectedCountText">0</span>)</span>
+                        </label>
+
+                        <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400">Chất lượng:</span>
+                            <select id="globalQuality" onchange="applyGlobalQuality(this.value)"
+                                class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-200 outline-none focus:border-indigo-500">
+                                <option value="1080p HD">1080p Full HD (Khuyên dùng)</option>
+                                <option value="4K Ultra HD">4K / 2K (Nếu có)</option>
+                                <option value="720p HD">720p HD (Tiết kiệm)</option>
+                                <option value="Audio MP3">Chỉ Âm thanh (MP3 320kbps)</option>
+                            </select>
+                        </div>
+
+                        <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+
+                        <label class="flex items-center gap-2 cursor-pointer select-none bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg hover:border-slate-700 transition">
+                            <input type="checkbox" id="globalCaptionToggle" onchange="toggleAllCaptions(this.checked)"
+                                class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500">
+                            <span class="text-xs font-medium text-slate-200">Lấy kèm Caption & Hashtag cho tất cả</span>
+                        </label>
+                    </div>
+
+                    <!-- Cột phải: Hành động Hàng loạt -->
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button onclick="exportSelectedToCSV()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-2 transition">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                            <span>Xuất Excel/CSV (<span id="exportCountText">0</span>)</span>
+                        </button>
+
+                        <button onclick="downloadSelectedVideos()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Tải Các Mục Đã Chọn (<span id="downloadCountText">0</span>)</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- DANH SÁCH VIDEO ĐÃ NHẬN DIỆN -->
+            <div id="videoListContainer" class="space-y-3">
+                <div id="emptyQueueState" class="glass-panel rounded-2xl p-12 text-center">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">
+                        <i data-lucide="film" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-base font-medium text-slate-300">Chưa có video nào trong danh sách chờ</h3>
+                    <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                        Hãy dán 1 hoặc nhiều link video vào khung bên trên hoặc bấm <strong>"Chèn 4 link mẫu để test nhanh"</strong> để xem cách ứng dụng hoạt động.
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== TAB 2: LỊCH SỬ TẢI XUỐNG ==================== -->
+        <section id="view-history" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-white">Lịch Sử Đã Tải Xuống</h2>
+                    <p class="text-sm text-slate-400 mt-0.5">Toàn bộ thông tin video bạn đã tải được lưu cục bộ trên trình duyệt để tra cứu lại bất cứ lúc nào.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportHistoryToCSV()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-2 transition">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                        Xuất Toàn Bộ Lịch Sử (CSV)
+                    </button>
+                    <button onclick="clearHistory()" class="px-3.5 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 text-xs font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="trash" class="w-4 h-4"></i>
+                        Xóa lịch sử
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh tìm kiếm & Lọc lịch sử -->
+            <div class="glass-card rounded-xl p-3.5 flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="historySearch" oninput="renderHistory()" placeholder="Tìm theo tiêu đề, caption, hashtag hoặc tên kênh..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500">
+                </div>
+                <select id="historyPlatformFilter" onchange="renderHistory()"
+                    class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500">
+                    <option value="ALL">Tất cả nền tảng</option>
+                    <option value="Facebook Reel">Facebook Reel</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="YouTube">YouTube</option>
+                    <option value="X.com">X.com</option>
+                </select>
+            </div>
+
+            <!-- Bảng / Danh sách Lịch sử -->
+            <div id="historyListContainer" class="space-y-3"></div>
+        </section>
+
+    </main>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let isBackendOnline = false;
+        let hasCookiesTxt = false;
+
+        // Dữ liệu từ video (tiêu đề, caption...) là nội dung người lạ viết → luôn escape trước khi chèn vào HTML
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        let videoQueue = [];
+        let downloadHistory = JSON.parse(localStorage.getItem('omni_download_history') || '[]');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateHistoryBadge();
+            checkBackendStatus();
+        });
+
+        // Kiểm tra kết nối với Server Python và kiểm tra xem có sẵn file cookies.txt chưa
+        async function checkBackendStatus() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/health`, { method: 'GET' });
+                if (res.ok) {
+                    const data = await res.json();
+                    isBackendOnline = true;
+                    hasCookiesTxt = Boolean(data.has_cookies_txt);
+                    const badge = document.getElementById('connectionBadge');
+                    badge.className = "px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1";
+                    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Đã kết nối Local Server (yt-dlp)`;
+                }
+            } catch (e) {
+                isBackendOnline = false;
+            }
+        }
+
+        // Bật/Tắt khung chọn nguồn Cookie
+        function toggleCookieSelector(checked) {
+            const wrapper = document.getElementById('browserSelectWrapper');
+            const hint = document.getElementById('cookieHint');
+            if (checked) {
+                wrapper.classList.remove('hidden');
+                hint.classList.remove('hidden');
+                checkCookieFileStatus();
+            } else {
+                wrapper.classList.add('hidden');
+                hint.classList.add('hidden');
+                showToast('Đã tắt chế độ xác thực Cookie.', 'info');
+            }
+        }
+
+        function checkCookieFileStatus() {
+            const source = document.getElementById('cookieBrowser').value;
+            const hint = document.getElementById('cookieHint');
+            if (source === 'cookies_txt') {
+                if (isBackendOnline && hasCookiesTxt) {
+                    hint.innerHTML = `✅ Đã tìm thấy file <code class="text-emerald-400 font-mono">cookies.txt</code> trong thư mục dự án! Sẵn sàng tải.`;
+                } else {
+                    hint.innerHTML = `💡 Hãy đặt file <code class="text-amber-300 font-mono">cookies.txt</code> vào cùng thư mục với <code class="text-indigo-300 font-mono">server.py</code>.`;
+                }
+            } else if (source === 'firefox') {
+                hint.innerHTML = `🦊 Firefox cho phép đọc Cookie trực tiếp ngay cả khi trình duyệt đang mở.`;
+            } else {
+                hint.innerHTML = `⚠️ Trên Windows, hãy đóng cửa sổ trình duyệt <strong>${source.toUpperCase()}</strong> trước khi bấm Tải để tránh lỗi khóa file.`;
+            }
+        }
+
+        // Mở nhanh thư mục Downloads trên máy tính Windows
+        async function openDownloadFolder() {
+            if (!isBackendOnline) {
+                showToast('Hãy bật file start_app.bat (Server Python) để mở thư mục trên Windows!', 'warning');
+                return;
+            }
+            try {
+                await fetch(`${API_BASE_URL}/api/open-folder`, { method: 'POST' });
+                showToast('Đã mở thư mục Downloads trên màn hình của bạn!', 'success');
+            } catch (e) {
+                showToast('Không thể mở thư mục.', 'warning');
+            }
+        }
+
+        // Chuyển đổi Tab
+        function switchTab(tab) {
+            const viewDownloader = document.getElementById('view-downloader');
+            const viewHistory = document.getElementById('view-history');
+            const tabDownloader = document.getElementById('tab-downloader');
+            const tabHistory = document.getElementById('tab-history');
+
+            if (tab === 'downloader') {
+                viewDownloader.classList.remove('hidden');
+                viewHistory.classList.add('hidden');
+                tabDownloader.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-indigo-600 text-white shadow";
+                tabHistory.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white";
+            } else {
+                viewDownloader.classList.add('hidden');
+                viewHistory.classList.remove('hidden');
+                tabHistory.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-indigo-600 text-white shadow";
+                tabDownloader.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white";
+                renderHistory();
+            }
+        }
+
+        // Nhận diện nền tảng
+        function detectPlatform(url) {
+            const u = url.toLowerCase();
+            if (u.includes('facebook.com') || u.includes('fb.watch') || u.includes('fb.com')) {
+                return { name: 'Facebook Reel', color: 'blue', badgeClass: 'bg-blue-500/15 text-blue-400 border-blue-500/30' };
+            }
+            if (u.includes('instagram.com') || u.includes('instagr.am')) {
+                return { name: 'Instagram', color: 'pink', badgeClass: 'bg-pink-500/15 text-pink-400 border-pink-500/30' };
+            }
+            if (u.includes('tiktok.com')) {
+                return { name: 'TikTok', color: 'cyan', badgeClass: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30' };
+            }
+            if (u.includes('youtube.com') || u.includes('youtu.be')) {
+                return { name: 'YouTube', color: 'red', badgeClass: 'bg-red-500/15 text-red-400 border-red-500/30' };
+            }
+            if (u.includes('x.com') || u.includes('twitter.com')) {
+                return { name: 'X.com', color: 'slate', badgeClass: 'bg-slate-500/20 text-slate-200 border-slate-500/40' };
+            }
+            return { name: 'Web Video', color: 'indigo', badgeClass: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' };
+        }
+
+        function loadSampleLinks() {
+            const sampleLinks = [
+                "https://www.facebook.com/reel/918273645019283",
+                "https://www.tiktok.com/@natgeo_wild/video/7391827364512",
+                "https://www.instagram.com/reel/C9xYzAbCdEf/",
+                "https://www.youtube.com/shorts/AbCdEfGhIjK"
+            ];
+            document.getElementById('urlInput').value = sampleLinks.join('\n');
+            showToast('Đã điền 4 link mẫu! Bấm "Phân Tích Liên Kết" để xem kết quả.', 'info');
+        }
+
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text.trim()) {
+                    showToast('Clipboard của bạn đang trống.', 'warning');
+                    return;
+                }
+                const input = document.getElementById('urlInput');
+                input.value = input.value ? input.value + '\n' + text.trim() : text.trim();
+                showToast('Đã dán liên kết từ Clipboard!', 'success');
+            } catch (err) {
+                showToast('Trình duyệt yêu cầu quyền truy cập Clipboard (hoặc nhấn Ctrl+V).', 'warning');
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('urlInput').value = '';
+        }
+
+        // Dữ liệu mô phỏng khi chưa bật Server Python
+        function generateMockMetadata(url, index) {
+            const platform = detectPlatform(url);
+            const presets = {
+                'Facebook Reel': {
+                    title: 'Nghệ thuật tái chế chai thủy tinh thành bình cắm hoa tối giản',
+                    author: '@MindfulBloomStudio',
+                    duration: '00:48',
+                    size: '19.4 MB',
+                    thumb: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=400&q=80',
+                    caption: 'Biến những chiếc lọ thủy tinh cũ thành góc bình yên trong căn phòng của bạn. Một chút sắc xanh cho ngày cuối tuần thư thái.',
+                    hashtags: '#upcycledart #floraldesign #mindfulness #slowliving #homedecor #diycrafts'
+                },
+                'TikTok': {
+                    title: 'Sinh vật phát sáng kỳ bí ở độ sâu 3.000m dưới đáy đại dương',
+                    author: '@DeepSeaExplorer',
+                    duration: '01:05',
+                    size: '28.2 MB',
+                    thumb: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=400&q=80',
+                    caption: 'Dưới độ sâu nơi ánh sáng mặt trời không bao giờ chạm tới, tạo hóa đã ban tặng cho các sinh vật biển khả năng phát quang sinh học tuyệt đẹp.',
+                    hashtags: '#deepsea #oceanlife #wildlife #unseenearth #bioluminescence #naturedocumentary'
+                },
+                'Instagram': {
+                    title: 'Phối đồ phong cách Quiet Luxury cho mùa thu lịch lãm',
+                    author: '@OldMoneyAesthetics',
+                    duration: '00:32',
+                    size: '14.8 MB',
+                    thumb: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80',
+                    caption: 'Sự tinh tế đến từ chất liệu tự nhiên: Áo Polo dệt kim kết hợp cùng quần Linen trắng phom dáng chuẩn mực.',
+                    hashtags: '#quietluxury #menswear #minimaliststyle #oldmoneyaesthetic #classicfashion'
+                },
+                'YouTube': {
+                    title: 'Cận cảnh khoảnh khắc săn mồi ngoạn mục của Báo Tuyết Himalaya',
+                    author: '@WildPlanet4K',
+                    duration: '00:58',
+                    size: '42.6 MB',
+                    thumb: 'https://images.unsplash.com/photo-1456926631375-92c8ce872def?auto=format&fit=crop&w=400&q=80',
+                    caption: 'Được mệnh danh là "Bóng ma của những ngọn núi", báo tuyết sở hữu khả năng ngụy trang hoàn hảo trên các vách đá dựng đứng.',
+                    hashtags: '#snowleopard #wildlife4k #nature #animals #wildplanet #shorts'
+                },
+                'X.com': {
+                    title: 'Tổng hợp xu hướng công nghệ AI tạo video thế hệ mới 2026',
+                    author: '@TechInsiderAI',
+                    duration: '01:20',
+                    size: '31.0 MB',
+                    thumb: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80',
+                    caption: 'So sánh độ chân thực về chuyển động vật lý và ánh sáng giữa các mô hình tạo video AI hàng đầu hiện nay.',
+                    hashtags: '#aivideo #generativeai #filmmaking #techtrends'
+                }
+            };
+
+            const data = presets[platform.name] || presets['YouTube'];
+            return {
+                id: 'vid_' + Date.now() + '_' + index,
+                url: url,
+                platform: platform.name,
+                badgeClass: platform.badgeClass,
+                title: data.title,
+                author: data.author,
+                duration: data.duration,
+                size: data.size,
+                thumbnail: data.thumb,
+                caption: data.caption,
+                hashtags: data.hashtags,
+                selected: true,
+                includeCaption: document.getElementById('globalCaptionToggle').checked,
+                quality: document.getElementById('globalQuality').value,
+                status: 'ready',
+                progress: 0
+            };
+        }
+
+        // Phân tích danh sách Link (Gửi kèm cấu hình Cookie)
+        async function analyzeLinks() {
+            const rawText = document.getElementById('urlInput').value.trim();
+            if (!rawText) {
+                showToast('Vui lòng dán ít nhất 1 đường link video!', 'warning');
+                return;
+            }
+
+            const urls = [...new Set(
+                rawText.split(/[\n,\s]+/)
+                       .map(u => u.trim())
+                       .filter(u => u.startsWith('http://') || u.startsWith('https://'))
+            )];
+
+            if (urls.length === 0) {
+                showToast('Không tìm thấy đường link hợp lệ (bắt đầu bằng http/https).', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btnAnalyze');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Đang phân tích (${urls.length})...</span>`;
+            lucide.createIcons();
+
+            const useCookies = document.getElementById('useCookiesToggle').checked;
+            const cookieSource = document.getElementById('cookieBrowser').value;
+
+            await checkBackendStatus();
+
+            if (isBackendOnline) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            urls: urls,
+                            use_cookies: useCookies,
+                            cookie_source: cookieSource
+                        })
+                    });
+                    const data = await res.json();
+                    data.items.forEach(item => {
+                        const p = detectPlatform(item.url);
+                        videoQueue.unshift({
+                            ...item,
+                            platform: p.name,
+                            badgeClass: p.badgeClass,
+                            selected: true,
+                            includeCaption: document.getElementById('globalCaptionToggle').checked,
+                            quality: document.getElementById('globalQuality').value,
+                            status: 'ready',
+                            progress: 0
+                        });
+                    });
+                } catch (err) {
+                    showToast('Lỗi khi gọi Server, chuyển sang dữ liệu mô phỏng.', 'warning');
+                }
+            } else {
+                await new Promise(r => setTimeout(r, 450));
+                urls.reverse().forEach((url, idx) => {
+                    videoQueue.unshift(generateMockMetadata(url, idx));
+                });
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            document.getElementById('urlInput').value = '';
+            renderQueue();
+            showToast(`Đã nhận diện xong ${urls.length} liên kết!`, 'success');
+        }
+
+        // Hiển thị danh sách chờ
+        function renderQueue() {
+            const container = document.getElementById('videoListContainer');
+            const batchBar = document.getElementById('batchControlBar');
+            const queueBadge = document.getElementById('queueCountBadge');
+
+            if (videoQueue.length === 0) {
+                batchBar.classList.add('hidden');
+                queueBadge.classList.add('hidden');
+                container.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-12 text-center">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">
+                            <i data-lucide="film" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-base font-medium text-slate-300">Chưa có video nào trong danh sách chờ</h3>
+                        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                            Hãy dán 1 hoặc nhiều link video vào khung bên trên hoặc bấm <strong>"Chèn 4 link mẫu để test nhanh"</strong> để xem cách ứng dụng hoạt động.
+                        </p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            batchBar.classList.remove('hidden');
+            queueBadge.classList.remove('hidden');
+            queueBadge.textContent = videoQueue.length;
+
+            const selectedCount = videoQueue.filter(v => v.selected).length;
+            document.getElementById('selectedCountText').textContent = `${selectedCount}/${videoQueue.length}`;
+            document.getElementById('exportCountText').textContent = selectedCount;
+            document.getElementById('downloadCountText').textContent = selectedCount;
+            document.getElementById('selectAllCheckbox').checked = selectedCount === videoQueue.length && videoQueue.length > 0;
+
+            container.innerHTML = videoQueue.map(v => `
+                <div class="glass-card rounded-2xl p-4 transition-all ${v.selected ? 'border-slate-700/90' : 'opacity-60'}">
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                        
+                        <!-- Checkbox & Thumbnail -->
+                        <div class="flex items-center gap-3.5 w-full md:w-auto">
+                            <input type="checkbox" ${v.selected ? 'checked' : ''} onchange="toggleSelectItem('${v.id}', this.checked)"
+                                class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            
+                            <div class="relative w-28 h-16 rounded-xl overflow-hidden bg-slate-900 flex-shrink-0 border border-slate-800">
+                                <img src="${esc(v.thumbnail)}" alt="Thumbnail" class="w-full h-full object-cover">
+                                <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white">
+                                    ${esc(v.duration)}
+                                </span>
+                            </div>
+
+                            <div class="md:hidden flex-1 min-w-0">
+                                <span class="px-2 py-0.5 text-[10px] font-semibold rounded border ${v.badgeClass}">${esc(v.platform)}</span>
+                                <h4 class="text-sm font-semibold text-white truncate mt-1">${esc(v.title)}</h4>
+                            </div>
+                        </div>
+
+                        <!-- Thông tin chi tiết -->
+                        <div class="flex-1 min-w-0 space-y-1">
+                            <div class="hidden md:flex items-center gap-2">
+                                <span class="px-2 py-0.5 text-[11px] font-semibold rounded border ${v.badgeClass}">${esc(v.platform)}</span>
+                                <span class="px-2 py-0.5 text-[10px] font-medium rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">No Watermark</span>
+                                <h4 class="text-sm font-semibold text-white truncate" title="${esc(v.title)}">${esc(v.title)}</h4>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                                <span class="flex items-center gap-1 text-slate-300 font-medium">
+                                    <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i> ${esc(v.author)}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-slate-500"></i> ~${esc(v.size)}
+                                </span>
+                                <a href="${esc(v.url)}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline flex items-center gap-1 truncate max-w-[240px]">
+                                    <i data-lucide="external-link" class="w-3 h-3"></i> Link gốc
+                                </a>
+                            </div>
+
+                            ${v.status !== 'ready' ? `
+                                <div class="pt-1.5">
+                                    <div class="flex items-center justify-between text-[11px] mb-1">
+                                        <span class="${v.status === 'completed' ? 'text-emerald-400 font-medium' : v.status === 'error' ? 'text-rose-400 font-medium' : 'text-indigo-400'}">
+                                            ${v.status === 'completed' ? '✅ Đã tải xuống hoàn tất (Lưu vào Downloads & Lịch sử)' : v.status === 'error' ? `❌ ${esc(v.errorMsg || 'Lỗi tải xuống')}` : `Đang tải video HD (${v.progress}%)...`}
+                                        </span>
+                                        <span class="font-mono text-slate-400">${v.progress}%</span>
+                                    </div>
+                                    <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                        <div class="h-full transition-all duration-300 ${v.status === 'completed' ? 'bg-emerald-500' : v.status === 'error' ? 'bg-rose-500' : 'bg-indigo-500'}" style="width: ${v.progress}%"></div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Cụm nút điều khiển từng Video -->
+                        <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-800/80">
+                            <select onchange="updateItemQuality('${v.id}', this.value)"
+                                class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500">
+                                <option value="1080p HD" ${v.quality === '1080p HD' ? 'selected' : ''}>1080p HD</option>
+                                <option value="4K Ultra HD" ${v.quality === '4K Ultra HD' ? 'selected' : ''}>4K Ultra HD</option>
+                                <option value="720p HD" ${v.quality === '720p HD' ? 'selected' : ''}>720p HD</option>
+                                <option value="Audio MP3" ${v.quality === 'Audio MP3' ? 'selected' : ''}>Audio MP3</option>
+                            </select>
+
+                            <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-pointer select-none transition ${v.includeCaption ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'}">
+                                <input type="checkbox" ${v.includeCaption ? 'checked' : ''} onchange="toggleItemCaption('${v.id}', this.checked)"
+                                    class="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
+                                <span>Lấy Caption/Hashtag</span>
+                            </label>
+
+                            <button onclick="downloadSingleVideo('${v.id}')" 
+                                class="px-3.5 py-1.5 rounded-lg ${v.status === 'completed' ? 'bg-slate-800 text-emerald-400' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} text-xs font-semibold flex items-center gap-1.5 transition">
+                                <i data-lucide="${v.status === 'completed' ? 'check' : 'download'}" class="w-3.5 h-3.5"></i>
+                                <span>${v.status === 'completed' ? 'Tải lại' : 'Tải xuống'}</span>
+                            </button>
+
+                            <button onclick="removeQueueItem('${v.id}')" title="Xóa khỏi danh sách"
+                                class="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 border border-slate-800 transition">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KHUNG CAPTION & HASHTAG (CHỈ HIỆN KHI NGƯỜI DÙNG TÍCH CHỌN) -->
+                    ${v.includeCaption ? `
+                        <div class="mt-3 pt-3 border-t border-slate-800/80 bg-slate-950/60 rounded-xl p-3.5 space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                                    <i data-lucide="align-left" class="w-3.5 h-3.5"></i>
+                                    Caption & Hashtag đã trích xuất
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="copyItemText('${v.id}', false, 'Đã copy toàn bộ Caption & Hashtag!')"
+                                        class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium flex items-center gap-1 transition">
+                                        <i data-lucide="copy" class="w-3 h-3 text-indigo-400"></i> Copy Toàn Bộ
+                                    </button>
+                                    <button onclick="copyItemText('${v.id}', true, 'Đã copy riêng bộ Hashtag!')"
+                                        class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium flex items-center gap-1 transition">
+                                        <i data-lucide="hash" class="w-3 h-3 text-emerald-400"></i> Chỉ Copy Hashtag
+                                    </button>
+                                    <button onclick="downloadCaptionTxt('${v.id}')"
+                                        class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium flex items-center gap-1 transition">
+                                        <i data-lucide="file-text" class="w-3 h-3 text-amber-400"></i> Tải file .txt
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed whitespace-pre-line">${esc(v.caption)}</p>
+                            <p class="text-xs font-mono text-indigo-400">${esc(v.hashtags)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function toggleSelectItem(id, checked) {
+            const item = videoQueue.find(v => v.id === id);
+            if (item) item.selected = checked;
+            renderQueue();
+        }
+
+        function toggleSelectAll(checked) {
+            videoQueue.forEach(v => v.selected = checked);
+            renderQueue();
+        }
+
+        function toggleItemCaption(id, checked) {
+            const item = videoQueue.find(v => v.id === id);
+            if (item) item.includeCaption = checked;
+            const allChecked = videoQueue.length > 0 && videoQueue.every(v => v.includeCaption);
+            document.getElementById('globalCaptionToggle').checked = allChecked;
+            renderQueue();
+        }
+
+        function toggleAllCaptions(checked) {
+            videoQueue.forEach(v => v.includeCaption = checked);
+            renderQueue();
+            showToast(checked ? 'Đã bật lấy Caption & Hashtag cho tất cả video.' : 'Đã tắt lấy Caption & Hashtag (Chỉ tải video).', 'info');
+        }
+
+        function updateItemQuality(id, quality) {
+            const item = videoQueue.find(v => v.id === id);
+            if (item) item.quality = quality;
+        }
+
+        function applyGlobalQuality(quality) {
+            videoQueue.forEach(v => v.quality = quality);
+            renderQueue();
+            showToast(`Đã đặt chất lượng chung: ${quality}`, 'info');
+        }
+
+        function removeQueueItem(id) {
+            videoQueue = videoQueue.filter(v => v.id !== id);
+            renderQueue();
+        }
+
+        // Tải Video Đơn lẻ (Gửi kèm cấu hình Cookie)
+        async function downloadSingleVideo(id) {
+            const item = videoQueue.find(v => v.id === id);
+            if (!item) return;
+
+            item.status = 'downloading';
+            item.progress = 20;
+            item.errorMsg = '';
+            renderQueue();
+
+            const useCookies = document.getElementById('useCookiesToggle').checked;
+            const cookieSource = document.getElementById('cookieBrowser').value;
+
+            if (isBackendOnline) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/download`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: item.url,
+                            quality: item.quality,
+                            include_caption: item.includeCaption,
+                            use_cookies: useCookies,
+                            cookie_source: cookieSource
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) {
+                        throw new Error(data.detail || 'Lỗi không xác định từ Server');
+                    }
+
+                    item.progress = 100;
+                    item.status = 'completed';
+                    saveToHistory(item);
+                    renderQueue();
+                    showToast(`Đã tải xong: ${item.title}`, 'success');
+                    return;
+                } catch (err) {
+                    item.status = 'error';
+                    item.progress = 100;
+                    item.errorMsg = err.message;
+                    renderQueue();
+                    showToast(err.message, 'warning');
+                    return;
+                }
+            }
+
+            // Chế độ mô phỏng khi chưa bật Server Python
+            for (let p of [40, 75, 100]) {
+                await new Promise(r => setTimeout(r, 250));
+                item.progress = p;
+                if (p === 100) {
+                    item.status = 'completed';
+                    saveToHistory(item);
+                    if (item.includeCaption) {
+                        downloadCaptionTxt(item.id, true);
+                    }
+                }
+                renderQueue();
+            }
+            showToast(`Hoàn tất tải xuống (Mô phỏng): ${item.platform}`, 'success');
+        }
+
+        async function downloadSelectedVideos() {
+            const selected = videoQueue.filter(v => v.selected);
+            if (selected.length === 0) {
+                showToast('Vui lòng tích chọn ít nhất 1 video để tải!', 'warning');
+                return;
+            }
+            showToast(`Bắt đầu tải hàng loạt ${selected.length} video...`, 'info');
+            for (const item of selected) {
+                await downloadSingleVideo(item.id);
+            }
+        }
+
+        function downloadCaptionTxt(id, silent = false) {
+            const item = videoQueue.find(v => v.id === id);
+            if (!item) return;
+            const content = `TIÊU ĐỀ: ${item.title}\nKÊNH: ${item.author}\nNỀN TẢNG: ${item.platform}\nLINK GỐC: ${item.url}\n\n--- CAPTION ---\n${item.caption}\n\n--- HASHTAGS ---\n${item.hashtags}\n`;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `[Caption]_${item.platform}_${item.id}.txt`;
+            a.click();
+            if (!silent) showToast('Đã tải file .txt chứa Caption & Hashtag!', 'success');
+        }
+
+        // Xuất CSV chuẩn UTF-8 BOM
+        function exportToCSVFile(items, filenamePrefix) {
+            if (items.length === 0) {
+                showToast('Không có dữ liệu nào được chọn để xuất CSV!', 'warning');
+                return;
+            }
+
+            const headers = [
+                'STT', 'Nền Tảng', 'Tên Kênh / Tác Giả', 'Tiêu Đề Video',
+                'Caption (Tùy chọn)', 'Hashtags (Tùy chọn)', 'Thời Lượng',
+                'Chất Lượng Đã Chọn', 'Link Gốc', 'Thời Gian Lưu'
+            ];
+
+            const escapeCSV = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
+            const rows = items.map((item, idx) => [
+                idx + 1,
+                escapeCSV(item.platform),
+                escapeCSV(item.author),
+                escapeCSV(item.title),
+                escapeCSV(item.includeCaption ? item.caption : '[Không lấy Caption]'),
+                escapeCSV(item.includeCaption ? item.hashtags : ''),
+                escapeCSV(item.duration),
+                escapeCSV(item.quality),
+                escapeCSV(item.url),
+                escapeCSV(item.downloadedAt || new Date().toLocaleString('vi-VN'))
+            ]);
+
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filenamePrefix}_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            showToast(`Đã xuất thành công ${items.length} mục ra file Excel/CSV!`, 'success');
+        }
+
+        function exportSelectedToCSV() {
+            const selected = videoQueue.filter(v => v.selected);
+            exportToCSVFile(selected, 'OmniStudio_DanhSachVideo');
+        }
+
+        function exportHistoryToCSV() {
+            exportToCSVFile(downloadHistory, 'OmniStudio_LichSuTaiVideo');
+        }
+
+        function saveToHistory(item) {
+            const record = {
+                ...item,
+                downloadedAt: new Date().toLocaleString('vi-VN')
+            };
+            downloadHistory = downloadHistory.filter(h => h.url !== item.url);
+            downloadHistory.unshift(record);
+            localStorage.setItem('omni_download_history', JSON.stringify(downloadHistory));
+            updateHistoryBadge();
+        }
+
+        function updateHistoryBadge() {
+            document.getElementById('historyCountBadge').textContent = downloadHistory.length;
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyListContainer');
+            const keyword = (document.getElementById('historySearch')?.value || '').toLowerCase();
+            const platformFilter = document.getElementById('historyPlatformFilter')?.value || 'ALL';
+
+            const filtered = downloadHistory.filter(h => {
+                const matchPlatform = platformFilter === 'ALL' || h.platform === platformFilter;
+                const matchKeyword = h.title.toLowerCase().includes(keyword) ||
+                                     h.author.toLowerCase().includes(keyword) ||
+                                     (h.caption && h.caption.toLowerCase().includes(keyword)) ||
+                                     (h.hashtags && h.hashtags.toLowerCase().includes(keyword));
+                return matchPlatform && matchKeyword;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-10 text-center text-slate-400 text-sm">
+                        Chưa có dữ liệu lịch sử phù hợp.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(h => `
+                <div class="glass-card rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                        <img src="${esc(h.thumbnail)}" class="w-20 h-12 rounded-lg object-cover border border-slate-800 flex-shrink-0">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 text-[10px] font-semibold rounded border ${h.badgeClass}">${esc(h.platform)}</span>
+                                <span class="text-xs text-slate-400 font-mono">${esc(h.downloadedAt)}</span>
+                                <span class="text-xs text-indigo-400 font-medium">• ${esc(h.quality)}</span>
+                            </div>
+                            <h4 class="text-sm font-semibold text-white truncate mt-1">${esc(h.title)}</h4>
+                            <p class="text-xs text-slate-400 truncate mt-0.5">Kênh: ${esc(h.author)} ${h.includeCaption ? `• ${esc(h.hashtags)}` : '• [Không lưu Caption]'}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-end md:self-center">
+                        ${h.includeCaption ? `
+                            <button onclick="copyItemText('${h.id}', false, 'Đã copy lại Caption & Hashtag!')"
+                                class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5">
+                                <i data-lucide="copy" class="w-3.5 h-3.5 text-emerald-400"></i> Copy Caption
+                            </button>
+                        ` : ''}
+                        <a href="${esc(h.url)}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-indigo-400 border border-slate-800 text-xs flex items-center gap-1">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Mở Link
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function clearHistory() {
+            if (!confirm('Bạn có chắc muốn xóa toàn bộ lịch sử tải xuống?')) return;
+            downloadHistory = [];
+            localStorage.removeItem('omni_download_history');
+            updateHistoryBadge();
+            renderHistory();
+            showToast('Đã xóa sạch lịch sử tải xuống.', 'info');
+        }
+
+        function copyItemText(id, onlyHashtags, msg) {
+            const item = videoQueue.find(v => v.id === id) || downloadHistory.find(h => h.id === id);
+            if (!item) return;
+            navigator.clipboard.writeText(onlyHashtags ? item.hashtags : item.caption + '\n\n' + item.hashtags);
+            showToast(msg, 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const colors = {
+                success: 'border-emerald-500/40 bg-slate-900/95 text-emerald-300',
+                warning: 'border-amber-500/40 bg-slate-900/95 text-amber-300',
+                info: 'border-indigo-500/40 bg-slate-900/95 text-indigo-300'
+            };
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-xl border shadow-2xl text-xs font-medium flex items-center gap-2 transition-all duration-300 ${colors[type]}`;
+            toast.textContent = message; // message có thể chứa tiêu đề video / lỗi từ server
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
